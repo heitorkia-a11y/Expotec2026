@@ -1,0 +1,1089 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Jogo da Memória - Ciclo do Sono</title>
+
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+    color: white;
+    padding: 30px 15px;
+
+    background:
+        radial-gradient(circle at 10% 15%, white 1px, transparent 2px),
+        radial-gradient(circle at 25% 70%, white 1px, transparent 2px),
+        radial-gradient(circle at 45% 20%, white 1px, transparent 2px),
+        radial-gradient(circle at 65% 75%, white 1px, transparent 2px),
+        radial-gradient(circle at 85% 25%, white 1px, transparent 2px),
+        radial-gradient(circle at 90% 80%, white 1px, transparent 2px),
+        linear-gradient(135deg, #02030c, #070b20, #0b1030, #03040d);
+
+    background-size:
+        180px 180px,
+        220px 220px,
+        200px 200px,
+        250px 250px,
+        190px 190px,
+        230px 230px,
+        cover;
+}
+
+/* LUA */
+
+body::before {
+    content: "🌙";
+    position: fixed;
+    right: 7%;
+    top: 25px;
+    font-size: 120px;
+    opacity: 0.3;
+    filter: drop-shadow(0 0 25px #aeb8ff);
+    z-index: -1;
+}
+
+.container {
+    width: 100%;
+    max-width: 1100px;
+    margin: auto;
+    text-align: center;
+}
+
+h1 {
+    font-size: 44px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 25px #6875d8;
+}
+
+.subtitulo {
+    color: #b8bee4;
+    margin-bottom: 25px;
+}
+
+/* NÍVEIS */
+
+.niveis {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.nivel {
+    border: 1px solid #3e467d;
+    background: #0c1130;
+    color: white;
+    padding: 13px 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 15px;
+    transition: 0.25s;
+}
+
+.nivel:hover {
+    transform: translateY(-3px);
+    background: #171e4d;
+}
+
+.nivel.ativo {
+    background: #4d57b5;
+    box-shadow: 0 0 20px #3d468d;
+}
+
+/* PAINEL */
+
+.painel {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.info {
+    min-width: 120px;
+    padding: 12px 18px;
+    border-radius: 13px;
+    background: rgba(12, 17, 48, 0.85);
+    border: 1px solid #292f60;
+}
+
+.info span {
+    display: block;
+    font-size: 12px;
+    color: #9098c9;
+    margin-bottom: 5px;
+}
+
+.info strong {
+    font-size: 20px;
+}
+
+/* TABULEIRO */
+
+.tabuleiro {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    max-width: 1000px;
+    margin: auto;
+}
+
+.carta {
+    height: 125px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.carta-conteudo {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.55s;
+    transform-style: preserve-3d;
+}
+
+.carta.virada .carta-conteudo {
+    transform: rotateY(180deg);
+}
+
+.frente,
+.verso {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 15px;
+    backface-visibility: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 7px 15px rgba(0,0,0,0.5);
+}
+
+/* VERSO */
+
+.verso {
+    background: linear-gradient(145deg, #151c4c, #080c25);
+    border: 2px solid #39447f;
+}
+
+.verso::after {
+    content: "🌙";
+    font-size: 38px;
+    opacity: 0.7;
+}
+
+/* FRENTE */
+
+.frente {
+    background: #eceeff;
+    color: #171a38;
+    transform: rotateY(180deg);
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+}
+
+.emoji {
+    font-size: 38px;
+}
+
+.nome-carta {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.carta.encontrada .frente {
+    background: #d8f0dd;
+    border: 3px solid #63ae6e;
+}
+
+/* EXPLICAÇÃO */
+
+.mensagem {
+    display: none;
+    max-width: 850px;
+    margin: 25px auto 0;
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(10, 15, 45, 0.95);
+    border: 1px solid #46529c;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    animation: aparecer 0.4s ease;
+}
+
+.mensagem.ativa {
+    display: block;
+}
+
+.mensagem h2 {
+    margin-bottom: 10px;
+}
+
+.mensagem p {
+    color: #d0d4ef;
+    line-height: 1.6;
+}
+
+/* VITÓRIA */
+
+.vitoria {
+    display: none;
+    margin: 25px auto;
+    max-width: 700px;
+    padding: 30px;
+    border-radius: 20px;
+    background: #0c1235;
+    border: 1px solid #4d59a4;
+}
+
+.vitoria.ativa {
+    display: block;
+}
+
+.vitoria h2 {
+    font-size: 30px;
+    margin-bottom: 12px;
+}
+
+.vitoria p {
+    color: #d0d4ed;
+    line-height: 1.6;
+}
+
+/* BOTÃO */
+
+.botao {
+    margin-top: 22px;
+    border: none;
+    border-radius: 12px;
+    padding: 13px 25px;
+    background: #4e59bd;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.botao:hover {
+    transform: scale(1.05);
+    background: #6873d8;
+}
+
+/* ANIMAÇÃO */
+
+@keyframes aparecer {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* RESPONSIVIDADE */
+
+@media (max-width: 800px) {
+
+    .tabuleiro {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .carta {
+        height: 115px;
+    }
+
+    h1 {
+        font-size: 34px;
+    }
+}
+
+@media (max-width: 500px) {
+
+    .tabuleiro {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .carta {
+        height: 110px;
+    }
+
+    .emoji {
+        font-size: 32px;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🌙 Ciclo do Sono</h1>
+
+    <p class="subtitulo">
+        🧠 Jogo da Memória — encontre os pares e aprenda sobre o sono!
+    </p>
+
+
+    <!-- NÍVEIS -->
+
+    <div class="niveis">
+
+        <button class="nivel ativo"
+        onclick="selecionarNivel('facil', this)">
+            🟢 Fácil — 6 pares
+        </button>
+
+        <button class="nivel"
+        onclick="selecionarNivel('medio', this)">
+            🟡 Médio — 12 pares
+        </button>
+
+        <button class="nivel"
+        onclick="selecionarNivel('hard', this)">
+            🔴 Hard — 24 pares
+        </button>
+
+    </div>
+
+
+    <!-- INFORMAÇÕES -->
+
+    <div class="painel">
+
+        <div class="info">
+            <span>⭐ Pontos</span>
+            <strong id="pontos">0</strong>
+        </div>
+
+        <div class="info">
+            <span>🃏 Tentativas</span>
+            <strong id="tentativas">0</strong>
+        </div>
+
+        <div class="info">
+            <span>🎯 Pares</span>
+            <strong id="pares">0 / 6</strong>
+        </div>
+
+        <div class="info">
+            <span>⏱️ Tempo</span>
+            <strong id="tempo">00:00</strong>
+        </div>
+
+    </div>
+
+
+    <!-- TABULEIRO -->
+
+    <div class="tabuleiro" id="tabuleiro"></div>
+
+
+    <!-- EXPLICAÇÃO -->
+
+    <div class="mensagem" id="mensagem">
+
+        <h2 id="tituloMensagem"></h2>
+
+        <p id="textoMensagem"></p>
+
+    </div>
+
+
+    <!-- VITÓRIA -->
+
+    <div class="vitoria" id="vitoria">
+
+        <h2>🎉 Parabéns!</h2>
+
+        <p>
+            Você encontrou todos os pares!
+            <br><br>
+            Você aprendeu várias informações importantes
+            sobre o ciclo do sono e os hábitos que podem
+            contribuir para um descanso melhor. 🌙💤
+        </p>
+
+        <button class="botao" onclick="reiniciarJogo()">
+            🔄 Jogar novamente
+        </button>
+
+    </div>
+
+
+    <button class="botao" onclick="reiniciarJogo()">
+        🔄 Reiniciar jogo
+    </button>
+
+</div>
+
+
+<script>
+
+/* ==========================================
+   CARTAS E INFORMAÇÕES SOBRE O SONO
+========================================== */
+
+const informacoes = [
+
+    {
+        id: 1,
+        emoji: "📱",
+        nome: "Celular",
+        explicacao:
+        "Evitar o celular e outras telas perto da hora de dormir pode ajudar o corpo a relaxar. A luz e os estímulos das telas podem dificultar o início do sono."
+    },
+
+    {
+        id: 2,
+        emoji: "☕",
+        nome: "Cafeína",
+        explicacao:
+        "A cafeína pode aumentar o estado de alerta e dificultar o sono. Evitar cafeína perto do horário de dormir pode ajudar."
+    },
+
+    {
+        id: 3,
+        emoji: "🌙",
+        nome: "Ambiente escuro",
+        explicacao:
+        "Um ambiente escuro pode ajudar o organismo a perceber que é hora de dormir e favorecer o descanso."
+    },
+
+    {
+        id: 4,
+        emoji: "⏰",
+        nome: "Rotina",
+        explicacao:
+        "Manter horários de sono relativamente regulares ajuda a organizar o relógio biológico."
+    },
+
+    {
+        id: 5,
+        emoji: "🏃",
+        nome: "Atividade física",
+        explicacao:
+        "Praticar atividades físicas durante o dia pode contribuir para uma boa noite de sono."
+    },
+
+    {
+        id: 6,
+        emoji: "🧠",
+        nome: "Cérebro",
+        explicacao:
+        "Durante o sono, o cérebro realiza processos importantes relacionados à memória, aprendizagem e organização das informações."
+    },
+
+    {
+        id: 7,
+        emoji: "🛏️",
+        nome: "Conforto",
+        explicacao:
+        "Uma cama e um ambiente confortáveis podem favorecer o descanso durante a noite."
+    },
+
+    {
+        id: 8,
+        emoji: "🔇",
+        nome: "Silêncio",
+        explicacao:
+        "Diminuir os ruídos do ambiente pode facilitar a manutenção de um sono tranquilo."
+    },
+
+    {
+        id: 9,
+        emoji: "🌡️",
+        nome: "Temperatura",
+        explicacao:
+        "Um ambiente com temperatura confortável pode ajudar a tornar o momento de dormir mais agradável."
+    },
+
+    {
+        id: 10,
+        emoji: "📚",
+        nome: "Relaxamento",
+        explicacao:
+        "Atividades tranquilas antes de dormir podem ajudar a preparar o corpo e a mente para o descanso."
+    },
+
+    {
+        id: 11,
+        emoji: "💡",
+        nome: "Luz",
+        explicacao:
+        "A exposição à luz influencia o relógio biológico. À noite, diminuir a iluminação pode ajudar a preparar o corpo para dormir."
+    },
+
+    {
+        id: 12,
+        emoji: "😴",
+        nome: "Descanso",
+        explicacao:
+        "Dormir é importante para a recuperação do organismo, para o funcionamento do cérebro e para o bem-estar."
+    },
+
+    {
+        id: 13,
+        emoji: "🌞",
+        nome: "Luz do dia",
+        explicacao:
+        "A exposição à luz natural durante o dia ajuda a sincronizar o relógio biológico."
+    },
+
+    {
+        id: 14,
+        emoji: "⏳",
+        nome: "Relógio biológico",
+        explicacao:
+        "O relógio biológico ajuda o organismo a organizar períodos de sono e de vigília ao longo das 24 horas."
+    },
+
+    {
+        id: 15,
+        emoji: "💭",
+        nome: "Sonhos",
+        explicacao:
+        "Os sonhos podem ocorrer durante diferentes fases do sono e são especialmente associados ao sono REM."
+    },
+
+    {
+        id: 16,
+        emoji: "🔄",
+        nome: "Ciclos",
+        explicacao:
+        "Durante a noite, passamos por ciclos de sono que se repetem várias vezes."
+    },
+
+    {
+        id: 17,
+        emoji: "🛌",
+        nome: "Sono profundo",
+        explicacao:
+        "O sono profundo é uma fase importante para a recuperação física do organismo."
+    },
+
+    {
+        id: 18,
+        emoji: "👀",
+        nome: "Sono REM",
+        explicacao:
+        "No sono REM, a atividade cerebral aumenta e os sonhos são mais comuns. Essa fase também está relacionada a processos de memória e aprendizagem."
+    },
+
+    {
+        id: 19,
+        emoji: "🥱",
+        nome: "Sonolência",
+        explicacao:
+        "A sonolência é uma indicação de que o organismo está se preparando para o período de descanso."
+    },
+
+    {
+        id: 20,
+        emoji: "🍽️",
+        nome: "Alimentação",
+        explicacao:
+        "Fazer refeições muito pesadas imediatamente antes de dormir pode causar desconforto e atrapalhar algumas pessoas."
+    },
+
+    {
+        id: 21,
+        emoji: "💧",
+        nome: "Hidratação",
+        explicacao:
+        "Manter uma boa hidratação durante o dia é importante. Porém, beber muito líquido imediatamente antes de dormir pode fazer algumas pessoas acordarem durante a noite."
+    },
+
+    {
+        id: 22,
+        emoji: "📵",
+        nome: "Pausa das telas",
+        explicacao:
+        "Criar um período sem telas antes de dormir pode facilitar o relaxamento e diminuir estímulos que mantêm a pessoa alerta."
+    },
+
+    {
+        id: 23,
+        emoji: "🧘",
+        nome: "Calma",
+        explicacao:
+        "Momentos tranquilos antes de dormir podem ajudar a diminuir a agitação e preparar a mente para o descanso."
+    },
+
+    {
+        id: 24,
+        emoji: "🌌",
+        nome: "Noite",
+        explicacao:
+        "A alternância entre dia e noite influencia o relógio biológico e ajuda o organismo a organizar o ciclo de sono e vigília."
+    }
+
+];
+
+
+/* ==========================================
+   NÍVEIS
+========================================== */
+
+const niveis = {
+    facil: 6,
+    medio: 12,
+    hard: 24
+};
+
+let nivelAtual = "facil";
+
+let cartas = [];
+
+let primeiraCarta = null;
+let segundaCarta = null;
+
+let bloqueado = false;
+
+let pontos = 0;
+let tentativas = 0;
+let paresEncontrados = 0;
+
+let segundos = 0;
+let intervalo = null;
+
+
+/* ELEMENTOS */
+
+const tabuleiro =
+    document.getElementById("tabuleiro");
+
+const pontosElemento =
+    document.getElementById("pontos");
+
+const tentativasElemento =
+    document.getElementById("tentativas");
+
+const paresElemento =
+    document.getElementById("pares");
+
+const tempoElemento =
+    document.getElementById("tempo");
+
+const mensagem =
+    document.getElementById("mensagem");
+
+const tituloMensagem =
+    document.getElementById("tituloMensagem");
+
+const textoMensagem =
+    document.getElementById("textoMensagem");
+
+const vitoria =
+    document.getElementById("vitoria");
+
+
+/* ==========================================
+   SELECIONAR NÍVEL
+========================================== */
+
+function selecionarNivel(nivel, botao) {
+
+    nivelAtual = nivel;
+
+    document.querySelectorAll(".nivel")
+        .forEach(btn => btn.classList.remove("ativo"));
+
+    botao.classList.add("ativo");
+
+    reiniciarJogo();
+
+}
+
+
+/* ==========================================
+   INICIAR JOGO
+========================================== */
+
+function iniciarJogo() {
+
+    const quantidade =
+        niveis[nivelAtual];
+
+    const selecionadas =
+        informacoes.slice(0, quantidade);
+
+    cartas = [];
+
+    selecionadas.forEach(info => {
+
+        cartas.push({...info});
+        cartas.push({...info});
+
+    });
+
+    embaralhar(cartas);
+
+    tabuleiro.innerHTML = "";
+
+
+    /* GRID MUDA CONFORME O NÍVEL */
+
+    if (quantidade === 6) {
+
+        tabuleiro.style.gridTemplateColumns =
+            "repeat(4, 1fr)";
+
+    }
+
+    else if (quantidade === 12) {
+
+        tabuleiro.style.gridTemplateColumns =
+            "repeat(6, 1fr)";
+
+    }
+
+    else {
+
+        tabuleiro.style.gridTemplateColumns =
+            "repeat(8, 1fr)";
+
+    }
+
+
+    cartas.forEach(carta => {
+
+        const elemento =
+            document.createElement("div");
+
+        elemento.classList.add("carta");
+
+        elemento.dataset.id =
+            carta.id;
+
+
+        elemento.innerHTML = `
+
+            <div class="carta-conteudo">
+
+                <div class="frente">
+
+                    <div class="emoji">
+                        ${carta.emoji}
+                    </div>
+
+                    <div class="nome-carta">
+                        ${carta.nome}
+                    </div>
+
+                </div>
+
+                <div class="verso"></div>
+
+            </div>
+
+        `;
+
+
+        elemento.addEventListener(
+            "click",
+            () => virarCarta(elemento)
+        );
+
+
+        tabuleiro.appendChild(elemento);
+
+    });
+
+
+    paresElemento.textContent =
+        `0 / ${quantidade}`;
+
+}
+
+
+/* ==========================================
+   EMBARALHAR
+========================================== */
+
+function embaralhar(array) {
+
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(Math.random() * (i + 1));
+
+        [array[i], array[j]] =
+            [array[j], array[i]];
+
+    }
+
+}
+
+
+/* ==========================================
+   VIRAR CARTA
+========================================== */
+
+function virarCarta(elemento) {
+
+    if (bloqueado) return;
+
+    if (elemento.classList.contains("virada"))
+        return;
+
+    if (elemento.classList.contains("encontrada"))
+        return;
+
+
+    if (!intervalo) {
+
+        iniciarCronometro();
+
+    }
+
+
+    elemento.classList.add("virada");
+
+
+    if (!primeiraCarta) {
+
+        primeiraCarta = elemento;
+
+        return;
+
+    }
+
+
+    segundaCarta = elemento;
+
+    tentativas++;
+
+    tentativasElemento.textContent =
+        tentativas;
+
+
+    verificarPar();
+
+}
+
+
+/* ==========================================
+   VERIFICAR PAR
+========================================== */
+
+function verificarPar() {
+
+    const id1 =
+        primeiraCarta.dataset.id;
+
+    const id2 =
+        segundaCarta.dataset.id;
+
+
+    if (id1 === id2) {
+
+        encontrouPar();
+
+    }
+
+    else {
+
+        bloqueado = true;
+
+
+        setTimeout(() => {
+
+            primeiraCarta
+                .classList
+                .remove("virada");
+
+            segundaCarta
+                .classList
+                .remove("virada");
+
+
+            primeiraCarta = null;
+            segundaCarta = null;
+
+            bloqueado = false;
+
+        }, 900);
+
+    }
+
+}
+
+
+/* ==========================================
+   PAR ENCONTRADO
+========================================== */
+
+function encontrouPar() {
+
+    primeiraCarta
+        .classList
+        .add("encontrada");
+
+    segundaCarta
+        .classList
+        .add("encontrada");
+
+
+    const info =
+        informacoes.find(
+            item =>
+            item.id ==
+            primeiraCarta.dataset.id
+        );
+
+
+    paresEncontrados++;
+
+    pontos += 100;
+
+    pontosElemento.textContent =
+        pontos;
+
+
+    const quantidade =
+        niveis[nivelAtual];
+
+
+    paresElemento.textContent =
+        `${paresEncontrados} / ${quantidade}`;
+
+
+    mostrarExplicacao(info);
+
+
+    primeiraCarta = null;
+    segundaCarta = null;
+
+
+    if (paresEncontrados === quantidade) {
+
+        setTimeout(() => {
+
+            vitoria.classList.add("ativa");
+
+            clearInterval(intervalo);
+
+        }, 700);
+
+    }
+
+}
+
+
+/* ==========================================
+   EXPLICAÇÃO
+========================================== */
+
+function mostrarExplicacao(info) {
+
+    tituloMensagem.textContent =
+        `${info.emoji} ${info.nome}`;
+
+    textoMensagem.textContent =
+        info.explicacao;
+
+    mensagem.classList.add("ativa");
+
+}
+
+
+/* ==========================================
+   CRONÔMETRO
+========================================== */
+
+function iniciarCronometro() {
+
+    intervalo = setInterval(() => {
+
+        segundos++;
+
+        const minutos =
+            Math.floor(segundos / 60);
+
+        const segundosRestantes =
+            segundos % 60;
+
+        tempoElemento.textContent =
+            `${String(minutos).padStart(2, "0")}:${String(segundosRestantes).padStart(2, "0")}`;
+
+    }, 1000);
+
+}
+
+
+/* ==========================================
+   REINICIAR
+========================================== */
+
+function reiniciarJogo() {
+
+    clearInterval(intervalo);
+
+    intervalo = null;
+
+    segundos = 0;
+
+    pontos = 0;
+
+    tentativas = 0;
+
+    paresEncontrados = 0;
+
+    primeiraCarta = null;
+    segundaCarta = null;
+
+    bloqueado = false;
+
+
+    pontosElemento.textContent = "0";
+
+    tentativasElemento.textContent = "0";
+
+    tempoElemento.textContent = "00:00";
+
+
+    mensagem.classList.remove("ativa");
+
+    vitoria.classList.remove("ativa");
+
+
+    iniciarJogo();
+
+}
+
+
+/* ==========================================
+   COMEÇAR
+========================================== */
+
+iniciarJogo();
+
+</script>
+
+</body>
+</html>
+```
